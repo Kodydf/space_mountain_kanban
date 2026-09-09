@@ -16,3 +16,5 @@ User is flagged when a card exists past the due date.
 User is treated with a Ric Flair "Woooooo!" when a card is moved to a new column. 
 User can utilize a *Digital Assistant* to perform all activities previously defined.  
      - Digital Assistant is powered via OpenRouter.ai API key.  
+
+<img width="1915" height="940" alt="image" src="https://github.com/user-attachments/assets/dd3b2ba0-79a1-4f8b-9269-aa6cc87df6b2" />
