@@ -10,4 +10,8 @@ test("renaming a column updates its header", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "On Hold" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Blocked" })).toHaveCount(0);
+
+  // Persists across a reload — the board is a real backend now, not local state.
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "On Hold" })).toBeVisible();
 });

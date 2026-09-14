@@ -13,7 +13,9 @@ test("overdue cards are flagged in red and future ones are not", async ({ page }
 test("editing a card's due date updates the badge", async ({ page }) => {
   await page.goto("/");
 
-  const card = page.getByTestId("card").filter({ hasText: "Waiting on design assets" });
+  // A different card than delete-card.spec.ts deletes, since both specs run
+  // against the same shared, persistent backend.
+  const card = page.getByTestId("card").filter({ hasText: "Launch marketing site" });
   await card.getByTestId("due-date").click();
   await card.locator('input[type="date"]').fill("2000-01-01");
   await card.locator('input[type="date"]').press("Enter");

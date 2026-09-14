@@ -1,7 +1,7 @@
 import type { BoardState } from "./types";
 
 export type BoardAction =
-  | { type: "ADD_CARD"; columnId: string; title: string; details: string; dueDate?: string | null }
+  | { type: "ADD_CARD"; columnId: string; title: string; details: string; dueDate?: string | null; id?: string }
   | {
       type: "UPDATE_CARD";
       cardId: string;
@@ -11,13 +11,14 @@ export type BoardAction =
     }
   | { type: "DELETE_CARD"; cardId: string }
   | { type: "RENAME_COLUMN"; columnId: string; title: string }
-  | { type: "MOVE_CARD"; cardId: string; toColumnId: string; toIndex: number };
+  | { type: "MOVE_CARD"; cardId: string; toColumnId: string; toIndex: number }
+  | { type: "HYDRATE_BOARD"; board: BoardState };
 
 export function boardReducer(state: BoardState, action: BoardAction): BoardState {
   switch (action.type) {
     case "ADD_CARD": {
       const newCard = {
-        id: crypto.randomUUID(),
+        id: action.id ?? crypto.randomUUID(),
         title: action.title,
         details: action.details,
         columnId: action.columnId,
@@ -75,6 +76,10 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
 
       const cards = [...withoutCard.slice(0, insertAt), movedCard, ...withoutCard.slice(insertAt)];
       return { ...state, cards };
+    }
+
+    case "HYDRATE_BOARD": {
+      return action.board;
     }
 
     default:

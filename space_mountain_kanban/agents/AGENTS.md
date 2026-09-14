@@ -12,12 +12,10 @@
 - The priority is a slick, professional, gorgeous UI/UX with very simple features
 - The app should open with dummy data populated for the single board
 
-## Technical Details
+## Frontend Details
 
-- Implemented as a modern NextJS app, client rendered
+- Implemented as a modern NextJS app
 - The NextJS app should be created in a subdirectory `frontend`
-- No persistence
-- No user management for the MVP
 - Use popular libraries
 - As simple as possible but with an elegant UI
 
@@ -28,6 +26,21 @@
 - Purple Secondary: `#753991` - submit buttons, important actions
 - Dark Navy: `#032147` - main headings
 - Gray Text: `#888888` - supporting text, labels
+
+## Backend Details 
+- A user can sign in
+- When signed in a user sees a Kanban board that represents their project. 
+- For the MVP there will only be a user sign in (hardcoded 'user' and 'password') but the database will support multiple users in the future. 
+- For the MVP there will only be one Kanban board per user. 
+- For the MVP this will run locally in a Docker Container.  
+- Python FastAPI backend, including serving the static NextJS site at /
+- Everything packaged into a Docker container
+- Use "uv" as the package manager for python in the Docker Container
+- Use SQLLite local database for the database, creating a new DB if it doesn't exist
+- Start and Stop server scripts for PC, Mac, Linux in scripts/ 
+
+## Starting State
+A working MVP of the frontend has already been built and is already in frontend. This is not yet designed for Docker setup. It's a pure front-end only demo with dummy data. 
 
 ## Strategy
 

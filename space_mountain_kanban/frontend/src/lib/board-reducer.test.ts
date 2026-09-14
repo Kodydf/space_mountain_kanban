@@ -36,6 +36,31 @@ describe("boardReducer", () => {
     expect(added.id).toBeTruthy();
   });
 
+  it("ADD_CARD uses the provided id when given (the server-generated id)", () => {
+    const state = makeState();
+    const next = boardReducer(state, {
+      type: "ADD_CARD",
+      id: "server-id-123",
+      columnId: "col-1",
+      title: "Persisted card",
+      details: "",
+    });
+
+    expect(next.cards.at(-1)!.id).toBe("server-id-123");
+  });
+
+  it("HYDRATE_BOARD replaces the entire state", () => {
+    const state = makeState();
+    const newBoard: BoardState = {
+      columns: [{ id: "col-9", title: "Fresh" }],
+      cards: [{ id: "card-9", title: "Fresh card", details: "", columnId: "col-9", dueDate: null }],
+    };
+
+    const next = boardReducer(state, { type: "HYDRATE_BOARD", board: newBoard });
+
+    expect(next).toEqual(newBoard);
+  });
+
   it("ADD_CARD defaults dueDate to null when omitted", () => {
     const state = makeState();
     const next = boardReducer(state, {

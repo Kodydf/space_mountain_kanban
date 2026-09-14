@@ -14,6 +14,10 @@ test("editing an existing card updates its title and details", async ({ page }) 
   await expect(page.getByText("Build settings & billing page")).toBeVisible();
   await expect(page.getByText("Account, notification, and billing preferences.")).toBeVisible();
   await expect(page.getByText("Build settings page", { exact: true })).toHaveCount(0);
+
+  // Persists across a reload — the board is a real backend now, not local state.
+  await page.reload();
+  await expect(page.getByText("Build settings & billing page")).toBeVisible();
 });
 
 test("canceling an edit discards changes", async ({ page }) => {

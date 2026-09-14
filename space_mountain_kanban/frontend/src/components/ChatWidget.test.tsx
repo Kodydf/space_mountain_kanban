@@ -4,18 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { ChatWidget } from "./ChatWidget";
 
 const dispatch = vi.fn();
-const state = {
-  columns: [
-    { id: "col-1", title: "To Do" },
-    { id: "col-2", title: "Done" },
-  ],
-  cards: [
-    { id: "card-1", title: "Write docs", details: "Docs for the API", columnId: "col-1", dueDate: null },
-  ],
-};
 
 vi.mock("@/lib/board-context", () => ({
-  useBoard: () => ({ state, dispatch }),
+  useBoard: () => ({ state: { columns: [], cards: [] }, dispatch }),
 }));
 
 async function openChat() {
@@ -41,55 +32,49 @@ describe("ChatWidget", () => {
     expect(screen.getByText(/woooo/i)).toBeInTheDocument();
   });
 
-  it("sends a message and displays a plain text reply", async () => {
+  it("sends a message, hydrates the board, and shows the reply", async () => {
+    const board = {
+      columns: [{ id: "col-1", title: "To Do" }],
+      cards: [{ id: "card-1", title: "Write docs", details: "", dueDate: null, columnId: "col-1" }],
+    };
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ content: "Write docs is due whenever you set it.", toolCalls: [] }),
+      json: async () => ({ reply: "Added the card.", board }),
     });
 
     render(<ChatWidget />);
     await openChat();
 
-    await userEvent.type(screen.getByPlaceholderText(/ask the assistant/i), "What is Write docs about?");
+    await userEvent.type(screen.getByPlaceholderText(/ask the assistant/i), "Add a card");
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Write docs is due whenever you set it.")).toBeInTheDocument();
+      expect(dispatch).toHaveBeenCalledWith({ type: "HYDRATE_BOARD", board });
     });
+    expect(await screen.findByText("Added the card.")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       "/api/chat",
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST", credentials: "include" })
     );
+  });
+
+  it("shows the server's error message and does not touch the board", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "Server is missing the OpenRouter API key." }),
+    });
+
+    render(<ChatWidget />);
+    await openChat();
+
+    await userEvent.type(screen.getByPlaceholderText(/ask the assistant/i), "Hello");
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+    expect(await screen.findByText(/openrouter api key/i)).toBeInTheDocument();
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("applies a move_card tool call and shows a confirmation", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        content: null,
-        toolCalls: [{ name: "move_card", arguments: { cardId: "card-1", toColumnId: "col-2" } }],
-      }),
-    });
-
-    render(<ChatWidget />);
-    await openChat();
-
-    await userEvent.type(screen.getByPlaceholderText(/ask the assistant/i), "Move Write docs to Done");
-    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith({
-        type: "MOVE_CARD",
-        cardId: "card-1",
-        toColumnId: "col-2",
-        toIndex: 0,
-      });
-    });
-    expect(await screen.findByText(/moved "write docs" to done/i)).toBeInTheDocument();
-  });
-
-  it("shows an error message when the request fails", async () => {
+  it("shows a network error message when the request fails", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("network down"));
 
     render(<ChatWidget />);

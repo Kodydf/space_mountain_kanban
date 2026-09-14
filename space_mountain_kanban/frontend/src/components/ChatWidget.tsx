@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 import { useBoard } from "@/lib/board-context";
-import type { BoardState } from "@/lib/types";
-import type { ChatApiResponse, ChatMessage, ToolCall } from "@/lib/chat-types";
+import type { ChatApiResponse, ChatMessage } from "@/lib/chat-types";
 
 const GREETING: ChatMessage = {
   role: "assistant",
@@ -12,28 +11,8 @@ const GREETING: ChatMessage = {
     "Woooo! I'm the stylin' and profilin' limosine riding kiss-stealing digital assistant. Ask me to add, update, move, or delete a card, or ask me about a task.",
 };
 
-function describeToolCall(tc: ToolCall, board: BoardState): string {
-  const findCard = (id: string) => board.cards.find((c) => c.id === id);
-  const findColumn = (id: string) => board.columns.find((c) => c.id === id);
-
-  switch (tc.name) {
-    case "add_card":
-      return `Added "${tc.arguments.title}" to ${findColumn(tc.arguments.columnId)?.title ?? "the board"}.`;
-    case "update_card":
-      return `Updated "${findCard(tc.arguments.cardId)?.title ?? "that card"}".`;
-    case "move_card":
-      return `Moved "${findCard(tc.arguments.cardId)?.title ?? "that card"}" to ${
-        findColumn(tc.arguments.toColumnId)?.title ?? "the board"
-      }.`;
-    case "delete_card":
-      return `Deleted "${findCard(tc.arguments.cardId)?.title ?? "that card"}".`;
-    default:
-      return "Done.";
-  }
-}
-
 export function ChatWidget() {
-  const { state, dispatch } = useBoard();
+  const { dispatch } = useBoard();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
@@ -44,54 +23,6 @@ export function ChatWidget() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, isOpen]);
-
-  function applyToolCall(tc: ToolCall): string {
-    switch (tc.name) {
-      case "add_card": {
-        if (!tc.arguments.columnId || !tc.arguments.title) return "Couldn't add the card — missing details.";
-        dispatch({
-          type: "ADD_CARD",
-          columnId: tc.arguments.columnId,
-          title: tc.arguments.title,
-          details: tc.arguments.details ?? "",
-          dueDate: tc.arguments.dueDate || null,
-        });
-        return describeToolCall(tc, state);
-      }
-      case "update_card": {
-        if (!tc.arguments.cardId) return "Couldn't update the card — missing id.";
-        const summary = describeToolCall(tc, state);
-        dispatch({
-          type: "UPDATE_CARD",
-          cardId: tc.arguments.cardId,
-          title: tc.arguments.title,
-          details: tc.arguments.details,
-          dueDate: "dueDate" in tc.arguments ? tc.arguments.dueDate || null : undefined,
-        });
-        return summary;
-      }
-      case "move_card": {
-        if (!tc.arguments.cardId || !tc.arguments.toColumnId) return "Couldn't move the card — missing details.";
-        const summary = describeToolCall(tc, state);
-        const toIndex = state.cards.filter((c) => c.columnId === tc.arguments.toColumnId).length;
-        dispatch({
-          type: "MOVE_CARD",
-          cardId: tc.arguments.cardId,
-          toColumnId: tc.arguments.toColumnId,
-          toIndex,
-        });
-        return summary;
-      }
-      case "delete_card": {
-        if (!tc.arguments.cardId) return "Couldn't delete the card — missing id.";
-        const summary = describeToolCall(tc, state);
-        dispatch({ type: "DELETE_CARD", cardId: tc.arguments.cardId });
-        return summary;
-      }
-      default:
-        return "Done.";
-    }
-  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -108,10 +39,8 @@ export function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: nextMessages,
-          board: { columns: state.columns, cards: state.cards },
-        }),
+        credentials: "include",
+        body: JSON.stringify({ messages: nextMessages }),
       });
       const data = (await res.json()) as ChatApiResponse;
 
@@ -121,10 +50,8 @@ export function ChatWidget() {
         return;
       }
 
-      const summaries = data.toolCalls.map(applyToolCall);
-      const replyParts = [...(data.content ? [data.content] : []), ...summaries];
-      const reply = replyParts.length > 0 ? replyParts.join(" ") : "Done.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      dispatch({ type: "HYDRATE_BOARD", board: data.board });
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch {
       setMessages((prev) => [
         ...prev,

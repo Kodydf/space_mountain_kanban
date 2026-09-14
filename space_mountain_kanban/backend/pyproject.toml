@@ -1,0 +1,22 @@
+[project]
+name = "space-mountain-kanban-backend"
+version = "0.1.0"
+description = "FastAPI backend for the Space Mountain Task Tracker Kanban app"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.119",
+    "uvicorn[standard]>=0.38",
+    "httpx>=0.28",
+    "python-dotenv>=1.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "live: tests that make real network calls to OpenRouter (excluded by default)",
+]
+addopts = "-m 'not live'"

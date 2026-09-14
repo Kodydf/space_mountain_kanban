@@ -1,0 +1,72 @@
+{
+  "database": "SQLite",
+  "file": "backend/data/kanban.db",
+  "tables": {
+    "users": {
+      "description": "One row per user. MVP has exactly one seeded row ('user'), but the shape supports more.",
+      "columns": {
+        "id": { "type": "INTEGER", "constraints": ["PRIMARY KEY AUTOINCREMENT"] },
+        "username": { "type": "TEXT", "constraints": ["NOT NULL", "UNIQUE"] },
+        "password_hash": {
+          "type": "TEXT",
+          "constraints": ["NOT NULL"],
+          "description": "Salted PBKDF2-HMAC-SHA256 hash, stored as 'salt$digest' in one column."
+        },
+        "created_at": { "type": "TEXT", "constraints": ["NOT NULL", "DEFAULT (datetime('now'))"] }
+      },
+      "status": "already implemented in Part 4"
+    },
+    "boards": {
+      "description": "One row per user's board. MVP: exactly one board per user.",
+      "columns": {
+        "id": { "type": "INTEGER", "constraints": ["PRIMARY KEY AUTOINCREMENT"] },
+        "user_id": {
+          "type": "INTEGER",
+          "constraints": ["NOT NULL", "UNIQUE", "REFERENCES users(id)"],
+          "description": "UNIQUE enforces one-board-per-user as a real DB constraint, not just app logic."
+        },
+        "created_at": { "type": "TEXT", "constraints": ["NOT NULL", "DEFAULT (datetime('now'))"] }
+      }
+    },
+    "board_columns": {
+      "description": "The 5 fixed columns of a board (To Do, In Progress, Review, Blocked, Done). Never added or removed after seeding, only renamed.",
+      "columns": {
+        "id": { "type": "TEXT", "constraints": ["PRIMARY KEY"], "description": "e.g. 'col-1' .. 'col-5', matching the frontend's existing id scheme." },
+        "board_id": { "type": "INTEGER", "constraints": ["NOT NULL", "REFERENCES boards(id)"] },
+        "title": { "type": "TEXT", "constraints": ["NOT NULL"] },
+        "position": {
+          "type": "INTEGER",
+          "constraints": ["NOT NULL"],
+          "description": "0-4, fixed column order. SQLite does not guarantee row order, and column order is meaningful to the UI, so it must be stored explicitly."
+        }
+      }
+    },
+    "cards": {
+      "description": "Kanban cards. A flat table (not nested under columns), matching the frontend's CardData shape exactly.",
+      "columns": {
+        "id": { "type": "TEXT", "constraints": ["PRIMARY KEY"], "description": "UUID, generated server-side on creation." },
+        "column_id": { "type": "TEXT", "constraints": ["NOT NULL", "REFERENCES board_columns(id)"] },
+        "title": { "type": "TEXT", "constraints": ["NOT NULL"] },
+        "details": { "type": "TEXT", "constraints": ["NOT NULL", "DEFAULT ''"] },
+        "due_date": {
+          "type": "TEXT",
+          "constraints": [],
+          "description": "ISO date 'YYYY-MM-DD', or NULL. Matches the frontend's `string | null` exactly — no conversion needed either direction."
+        },
+        "position": {
+          "type": "INTEGER",
+          "constraints": ["NOT NULL"],
+          "description": "Order within its column. Recomputed (only for the affected column(s)) on every add/move/delete, mirroring the frontend reducer's existing MOVE_CARD splice logic."
+        }
+      }
+    }
+  },
+  "indexes": {
+    "note": "Not created for the MVP — a handful of rows per user does not need them. If this ever supports many users/cards, add indexes on board_columns.board_id and cards.column_id."
+  },
+  "seed_data": {
+    "description": "On first run (empty DB), the seeded 'user' gets one board with the same 5 columns and 8 dummy cards currently hardcoded in frontend/src/lib/seed-data.ts, so the app's out-of-the-box experience is unchanged.",
+    "columns": ["To Do", "In Progress", "Review", "Blocked", "Done"],
+    "card_count": 8
+  }
+}

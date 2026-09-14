@@ -19,4 +19,9 @@ test("dragging a card moves it to another column", async ({ page }) => {
 
   await expect(targetColumn.getByText("Design onboarding flow")).toBeVisible();
   await expect(sourceColumn.getByText("Design onboarding flow")).toHaveCount(0);
+
+  // Persists across a reload — the board is a real backend now, not local state.
+  await page.reload();
+  const reloadedTarget = page.getByTestId("column").filter({ hasText: "Done" });
+  await expect(reloadedTarget.getByText("Design onboarding flow")).toBeVisible();
 });

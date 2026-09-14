@@ -17,7 +17,9 @@ test("moving a card plays the woo sound", async ({ page }) => {
 
   const sourceColumn = page.getByTestId("column").filter({ hasText: "To Do" });
   const targetColumn = page.getByTestId("column").filter({ hasText: "Done" });
-  const card = sourceColumn.getByTestId("card").filter({ hasText: "Design onboarding flow" });
+  // A different card than drag-drop.spec.ts moves, since both specs run
+  // against the same shared, persistent backend.
+  const card = sourceColumn.getByTestId("card").filter({ hasText: "Set up analytics" });
 
   const cardBox = await card.boundingBox();
   const targetBox = await targetColumn.getByTestId("column-drop-area").boundingBox();
@@ -28,7 +30,7 @@ test("moving a card plays the woo sound", async ({ page }) => {
   await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + 20, { steps: 15 });
   await page.mouse.up();
 
-  await expect(targetColumn.getByText("Design onboarding flow")).toBeVisible();
+  await expect(targetColumn.getByText("Set up analytics")).toBeVisible();
   const playCalls = await page.evaluate(() => (window as unknown as { __playCalls: number }).__playCalls);
   expect(playCalls).toBeGreaterThan(0);
 });
